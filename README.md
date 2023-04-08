@@ -110,6 +110,12 @@ inference task.
 
 &emsp;&emsp; -- The test accuracy, timing, and confusion matrix will be shown
 
+&emsp;&emsp; -- If inferenced VGG model, commented all resnet model path and code, and change any related model path to 
+    model_path_vgg
+
+&emsp;&emsp; -- If inferenced Resnet model, commented all vgg model path and code, and change any related model path to 
+    model_path_resnet
+
 ### Others:
 
 -- Augmentation.py： User can apply the data augmentation towards the training images to see transformations

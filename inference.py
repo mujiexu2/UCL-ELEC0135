@@ -51,24 +51,25 @@ trans_valid = transforms.Compose([
 
 class amls2Dataset(Dataset):
     def __init__(self, path, mode):
+        '''
+
+        Args:
+            path: directory will be sent to the model
+            mode: training/validation
+        '''
         self.all_image_paths = list(path.glob('*.jpg'))
-        # print(len(self.all_image_paths))
-        # load labels
         self.mode = mode
         if mode == "test":
             label_path = path / 'amls_test.csv'
         else:
             label_path = path/ 'amls_valid.csv'
         label_list = self.load_label(label_path, mode)
-        print(label_list)
         label_dict = dict((temp[0], temp[1]) for temp in label_list)
-        print(len(label_dict))
-        # ground truth amount check
+
         if len(label_dict) != len(self.all_image_paths):
             logging.warning('-----label amount dismatch with img amount-----')
             print('-----label amount dismatch with img amount-----')
 
-        # corresponding label to img
         self.all_image_labels = list()
         for i in self.all_image_paths:
             if label_dict.get(str(i.name)) is not None:
@@ -78,10 +79,6 @@ class amls2Dataset(Dataset):
                 print('-----no label imgs-----')
                 print(i)
 
-        # image normalization params
-        # self.mean = np.array(mean).reshape((1, 1, 3))
-        # self.std = np.array(std).reshape((1, 1, 3))
-        # load label生成一个list，存所有按照顺序排列的图片的名字，label和index对应
     def load_label(self, path, mode):
         with open(path, 'r') as csvfile:
             reader = csv.reader(csvfile)
@@ -96,7 +93,6 @@ class amls2Dataset(Dataset):
         print('-----load ', mode, ' dataset labels-----')
         return label_data
 
-    # 每次iteration要调用一次getitem（16）；负责送图片和label；送给模型
     def __getitem__(self, index):
         img = Image.open(self.all_image_paths[index])
         if self.mode == 'test':
@@ -107,42 +103,56 @@ class amls2Dataset(Dataset):
         label = torch.tensor(label)
         return img, label
 
-    # 看总共有多少张图片，是pytorch函数内部调用
     def __len__(self):
         return len(self.all_image_paths)
 
 def create_csv(path, result_list):
-    # save predict labels of test dataset
+    '''
+    used in train(), to record the training/validation results derived into csv file for further debugging
+    Args:
+        path: path to store results
+        result_list: list stored
+
+    Returns:
+
+    '''
     with open(path, 'w', newline='') as f:
         csv_write = csv.writer(f)
         csv_write.writerow(["predict_label", "gt_label", "match"])
         csv_write.writerows(result_list)
 
 def heatmap(test_result_list):
-  # 通过列表解析取出每个小list的第一个值
+    '''
+
+    Args:
+        test_result_list: test result list with 20 test accuracy
+
+    Returns: a confusion matrix fig
+
+    '''
+    # picking the first element of the list within list
     y_true = [sublist[0] for sublist in test_result_list]
     y_pred = [sublist[1] for sublist in test_result_list]
 
     class_names = ['CBB', 'CBSD', 'CGM', 'CMD', 'Healthy']
-    # 计算混淆矩阵
+    # calculate confusion matrix
     cm = confusion_matrix(y_true, y_pred, normalize='true')
-    # 绘制混淆矩阵图
 
+    # plot confusion matrix
     fig, ax = plt.subplots(figsize=(10, 8))
     sns.heatmap(cm, annot=True, cmap='Blues', fmt='.2%',
                 xticklabels=class_names, yticklabels=class_names, ax=ax)
 
-    # 设置轴标签
+    # set axis label
     ax.set_xlabel('Predicted labels')
     ax.set_ylabel('True labels')
 
-    # 显示图像
-    # # 绘制混淆矩阵热图
-    # plt.figure(figsize=(8, 6))
-    # sns.heatmap(cm, annot=True, cmap='Blues')
-    # plt.xlabel('Predicted label')
-    # plt.ylabel('True label')
-    plt.show()
+    # save fig and clear fig
+    plt.savefig((type(pretrained_net).__name__ + "_confusion matrix_" + "_" + str(
+        time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".jpg"))
+    plt.clf()  # Clear figure
+    plt.cla()  # Clear axes
+    plt.close()
 
 
 def inference(net, test_iter):
@@ -155,7 +165,7 @@ def inference(net, test_iter):
 
     with torch.no_grad():
         net.eval()  # evaluate mode
-        test_acc_sum, n2 = 0.0, 0  # 初始化
+        test_acc_sum, n2 = 0.0, 0
         test_result_list = []
         for X, y in test_iter:
             y_hat = net(X.to(device))
@@ -164,14 +174,14 @@ def inference(net, test_iter):
                                1).tolist()
             test_result_list.extend(temp)
             n2 += y.shape[0]
-    # 计算+输出 不重要
+
     temp_acc_test = test_acc_sum / n2
     acc_test_list.append(temp_acc_test)
     logging.info('---test acc %.4f, time %.1f sec---'
                  % (temp_acc_test, time.time() - start))
     print('---test acc %.4f, time %.1f sec---'
           % (temp_acc_test, time.time() - start))
-    # 存csv和路径
+
     result_path = model_path_resnet.parent / ("inference_" + str(model_path_resnet.stem) + "_result.csv")
     create_csv(result_path, test_result_list)
 
@@ -185,10 +195,10 @@ test_iter = DataLoader(test_dataset, batch_size=batch_size)
 
 pretrained_net = models.resnet18(pretrained=True)
 # pretrained_net = models.vgg19(pretrained=True)
-# 定义新全连接层
+# classes to 5
 num_ftrs = pretrained_net.fc.in_features
 pretrained_net.fc = nn.Linear(num_ftrs, 5)
-# num_classes = 5  # 设置新的分类数
+# num_classes = 5  
 # pretrained_net.classifier[-1] = nn.Linear(4096, num_classes)
 
 pretrained_net.load_state_dict(torch.load(pathlib.Path(model_path_resnet)))
