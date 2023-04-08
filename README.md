@@ -19,7 +19,7 @@ Code are done and run using Nvidia GPU to accelerate.
 
 The GPU information: 
 
-![GPU_Info.PNG](GPU_Info.PNG)
+![GPU_Info.PNG](https://github.com/mujiexu2/UCL-ELEC0135/blob/main/IMG/GPU%20Info.png)
 ## Python libraries used
 - pytorch
 - numpy
@@ -57,17 +57,39 @@ virtual environment to configure relevant libraries.
 
 ## Program Run Instruction
 
+### Program Result Instruction
+While running each model, it will generate five files: 
+
+-- Logging for whole running process
+
+-- Validation result for each epoch, total 20 epochs produce 20 results
+
+-- Test result 
+
+-- Validation result accuracy list in csv file, 20 accuracy included
+
+-- Plot: 
+
+&emsp;&emsp;    -- Validation accuracy vs. epoch no.
+
+&emsp;&emsp;    -- Training accuracy vs. epoch no.
+
+&emsp;&emsp;    -- Training loss vs. batch count
+
 ### Training and Validation
 You can "python resnet/vgg" to run ResNet-18 and VGG-19 models to do the task. Both model has the configuration, about
 setting the epoch number to 20, batch size to 64, learning rate with three settings: 0.1, 0.01, 0.001.
 For "resnet,py", the ResNet-18 model, it contains two settings: pretrained/customized models.
 
 -- If utilizing the pretrained ResNet-18 model, please make sure the code within run(), 
-            be like: __image
+            be like: 
+![resnet-18_pretrained_setting.PNG](https://github.com/mujiexu2/UCL-ELEC0135/blob/main/IMG/resnet-18_pretrained_setting.png)
 
 -- If utilizing the customized ResNet-18 model, please make sure the code within run(), 
-            be like: __image
-&emsp;&emsp; Within resnet.py, resnet_customized.py is imported with providing the customized, model trained from 
+            be like:
+![resnet-18_customized_setting.PNG](https://github.com/mujiexu2/UCL-ELEC0135/blob/main/IMG/resnet-18_customized_setting.png)
+
+&emsp;&emsp; -- Within resnet.py, resnet_customized.py is imported with providing the customized, model trained from 
     random weights (self-built).
 
 -- Both customized and pretrained ResNet-18 work fine with the three learning rate, while 0.001 gives the best result 
@@ -78,20 +100,21 @@ For "vgg.py", the VGG-19 model, only pretrained VGG-19 model is utilized.
 -- Learning rate can only be set to 0.001, while other learning rates provide extremely low training and validation accuracy.
 
 ### Testing
-After running the training and validation file, main.py will run that, it is critical to run inference.py. 
+After running the training and validation file, which main.py does, it is critical to run inference.py. 
 
---Inference.py does to apply the best model within the 20 epochs onto the test dataset, VGG-19 and Resnet-18 model.
+--Inference.py does applying the best model within the 20 epochs onto the test dataset, VGG-19 and Resnet-18 model.
 
-&emsp;&emsp; -- User needs to pick the model from the "model" file via checking the plot, the model epoch with the 
-highest validation accuracy, to execute the model inference task.
+&emsp;&emsp; -- User needs to pick the model(.pth file) from the "model" file via checking the plot and the validation 
+accuracy list. Find the model path of the 20 epochs with the highest validation accuracy, and execute the model 
+inference task.
 
-### Program Result Instruction
-While running each model, it will generate five files: 
+&emsp;&emsp; -- The test accuracy, timing, and confusion matrix will be shown
 
--- Logging for whole running process
+### Others:
 
--- Validation result for each epoch, total 20 epochs
+-- Augmentation.py： User can apply the data augmentation towards the training images to see transformations
 
--- Test result 
+
+
 
 

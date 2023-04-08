@@ -127,7 +127,7 @@ trans_valid = transforms.Compose([
 logging path setting:
 Setting format for data logging to be saved on the local disk
 '''
-log_path = pathlib.Path.cwd() / ("Resnet18_train_validation_" + "lr_"+ "str(lr)_"+ str(time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".log")
+log_path = pathlib.Path.cwd() / ("Resnet18_train_validation_" + "lr_"+ str(lr) + "_" + str(time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".log")
 logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                     level=logging.INFO,
                     filename=log_path,
@@ -150,9 +150,9 @@ class amls2Dataset(Dataset):
         else:
             label_path = path/ 'amls_valid.csv'
         label_list = self.load_label(label_path, mode)
-        print(label_list)
+        #print(label_list)
         label_dict = dict((temp[0], temp[1]) for temp in label_list)
-        print(len(label_dict))
+        #print(len(label_dict))
         # Check label amount with image amount, whether matches; helps uploading datasets
         if len(label_dict) != len(self.all_image_paths):
             logging.warning('-----label amount not match with img amount-----')
@@ -380,14 +380,14 @@ def run():
 
     # Define the resnet model, two options: pretrained resnet-18, customized resnet-18
     # the pretrained model has the fc layer for 1000 classes, which need to be modified to 5
-
     # --------------If want to use pretrained resnet-18, not comment these three lines, comment the line of 395 -------
-    # pretrained_net = models.resnet18(pretrained=True)
-    # num_ftrs = pretrained_net.fc.in_features
-    # pretrained_net.fc = nn.Linear(num_ftrs, 5)
+    pretrained_net = models.resnet18(pretrained=True)
+    print("-----------------------Running:",  type(pretrained_net).__name__, "---------------------------------------")
+    num_ftrs = pretrained_net.fc.in_features
+    pretrained_net.fc = nn.Linear(num_ftrs, 5)
 
     # --------------If using customized ResNet-18 , using this line of code, commented last 3 lines above-------------
-    pretrained_net = resnet18_without_residuals(5, pretrained=False)
+    # pretrained_net = resnet18_without_residuals(5, pretrained=False)
 
     #  Separating the parameters of the last fully connected layer, as fc layer performs better in greater learning rate
     output_params = list(map(id, pretrained_net.fc.parameters()))

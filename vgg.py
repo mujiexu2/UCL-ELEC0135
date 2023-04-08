@@ -150,9 +150,9 @@ class amls2Dataset(Dataset):
         else:
             label_path = path/ 'amls_valid.csv'
         label_list = self.load_label(label_path, mode)
-        print(label_list)
+        #print(label_list)
         label_dict = dict((temp[0], temp[1]) for temp in label_list)
-        print(len(label_dict))
+        #print(len(label_dict))
         # Check label amount with image amount, whether matches; helps uploading datasets
         if len(label_dict) != len(self.all_image_paths):
             logging.warning('-----label amount dismatch with img amount-----')
@@ -373,32 +373,33 @@ def plot_save(loss_list, acc_list, train_acc_list):  # 不重要
     plt.cla()  # Clear axes
     plt.close()
 
+def run():
+    train_test_val_split(DATA_DIR, TRAIN_DIR, TEST_DIR, VAL_DIR, model_path)
+    train_dataset = amls2Dataset(TRAIN_DIR, "training")
+    val_dataset = amls2Dataset(VAL_DIR, "validation")
 
-train_test_val_split(DATA_DIR, TRAIN_DIR, TEST_DIR, VAL_DIR, model_path)
-train_dataset = amls2Dataset(TRAIN_DIR, "training")
-val_dataset = amls2Dataset(VAL_DIR, "validation")
+    train_iter = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_iter = DataLoader(val_dataset, batch_size=batch_size)
 
-train_iter = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-val_iter = DataLoader(val_dataset, batch_size=batch_size)
+    # set pretrained VGG-19
+    pretrained_net = models.vgg19(pretrained=True)
+    print("-----------------------Running:", type(pretrained_net).__name__, "---------------------------------------")
+    # the pretrained model has the fc layer for 1000 classes, which need to be modified to 5
+    num_classes = 5  # set class numbers
+    pretrained_net.classifier[-1] = nn.Linear(4096, num_classes)
+    # Separating the parameters of the last fully connected layer, as fc layer performs better in greater learning rate
+    # Apply optimizer
+    optimizer = optim.SGD([{'params': pretrained_net.features.parameters()},
+                           {'params': pretrained_net.avgpool.parameters()},
+                           {'params': pretrained_net.classifier.parameters(), 'lr': lr * 10}],
+                          lr=lr, weight_decay=0.001)
+    # Calculate Loss
+    loss = torch.nn.CrossEntropyLoss()
+    train(pretrained_net, train_iter, val_iter, loss, optimizer, num_epochs=epoch)
+    plot_save(loss_list, acc_val_list, acc_train_list)
+    # save model
+    torch.save(pretrained_net.state_dict(),
+               model_path / ("epoch_" + str(epoch) + "_lr_" + str(lr) + "_" + str(
+                   time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".pth"))
 
-# set pretrained VGG-19
-pretrained_net = models.vgg19(pretrained=True)
-# the pretrained model has the fc layer for 1000 classes, which need to be modified to 5
-num_classes = 5  # set class numbers
-pretrained_net.classifier[-1] = nn.Linear(4096, num_classes)
-# Separating the parameters of the last fully connected layer, as fc layer performs better in greater learning rate
-# Apply optimizer
-optimizer = optim.SGD([{'params': pretrained_net.features.parameters()},
-                       {'params': pretrained_net.avgpool.parameters()},
-                       {'params': pretrained_net.classifier.parameters(), 'lr': lr * 10}],
-                      lr=lr, weight_decay=0.001)
-# Calculate Loss
-loss = torch.nn.CrossEntropyLoss()
-train(pretrained_net, train_iter, val_iter, loss, optimizer, num_epochs=epoch)
-plot_save(loss_list, acc_val_list, acc_train_list)
-# save model
-torch.save(pretrained_net.state_dict(),
-           model_path / ("epoch_" + str(epoch) + "_lr_" + str(lr) + "_" + str(
-               time.strftime("%m_%d_%H_%M_%S", time.localtime())) + ".pth"))
-
-record_acc_csv('vgg_test_acc.csv', acc_val_list)
+    record_acc_csv('vgg_test_acc.csv', acc_val_list)
