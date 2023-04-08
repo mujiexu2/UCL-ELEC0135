@@ -2,9 +2,17 @@ import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
-##resnet每个残差链接模块
+##Each residual block in ResNet
 class BasicBlock(nn.Module):
     def __init__(self,inplanes: int,planes: int,stride: int = 1,downsample = None) -> None:
+        '''
+
+        Args:
+            inplanes: input channels
+            planes: output channels
+            stride: integer that specifies the stride of the convolutional layers in the block
+            downsample: optional argument that can be used to downsample the input feature map
+        '''
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(inplanes,planes, 3, stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
@@ -16,6 +24,14 @@ class BasicBlock(nn.Module):
 
 
     def forward(self, x):
+        '''
+        a residual block performs several operations, including convolutions, batch normalizations, etc.
+        Args:
+            x: input tensor
+
+        Returns: output returned by residual block
+
+        '''
         identity = x
 
         out = self.conv1(x)
@@ -35,7 +51,14 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self,layers: list, num_classes: int,zero_init_residual: bool = False) -> None:
+    def __init__(self,layers: list, num_classes: int, zero_init_residual: bool = False) -> None:
+        '''
+        defines a ResNet-18 module
+        Args:
+            layers: number of layers
+            num_classes: class numbers
+            zero_init_residual: whether to initialize the residual connections in the network to zero.
+        '''
         super(ResNet, self).__init__()
         self.inplanes = 64
         self.dilation = 1
@@ -66,6 +89,15 @@ class ResNet(nn.Module):
 
 
     def _make_layer(self, planes: int, blocks: int,stride: int = 1) -> nn.Sequential:
+        '''
+        Args:
+            planes: output channels
+            blocks: number of residual blocks
+            stride: integer that specifies the stride of the convolutional layers in the block
+
+        Returns: nn.Sequential object containing all the blocks in the residual block
+
+        '''
         downsample = None
         if stride != 1 or self.inplanes != planes:
             downsample = nn.Sequential(nn.Conv2d(self.inplanes, planes, 1, stride=stride, bias=False),
@@ -78,7 +110,15 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        #先做7x7的卷积
+        # First implement 7x7 convolution layers
+        '''
+
+        Args:
+            x: input tensor
+
+        Returns: out
+
+        '''
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -96,13 +136,19 @@ class ResNet(nn.Module):
 
         return x
 
+def resnet18_customized(num_classes, pretrained: bool = False, path= None, progress: bool = True) -> ResNet:
+    '''
 
-def resnet18_without_residuals(num_classes, pretrained: bool = False, path= None, progress: bool = True) -> ResNet:
+    Args:
+        num_classes:
+        pretrained: if use pretrained model
+        path: if not set a customized model path, download resnet18-f37072fd.pth from the official website
+        progress:  download progress
+
+    Returns: model
+
     '''
-    pretrained决定是否用预训练的参数
-    如果没有指定自己预训练模型的路径，就从官方网站下载resnet18-f37072fd.pth
-    progress显示下载进度
-    '''
+
     model=ResNet([2, 2, 2, 2], num_classes, zero_init_residual= True) #2222是多少个basic block，一共有4步，每一步都有2个block
     if pretrained:
         if not path:
@@ -115,10 +161,3 @@ def resnet18_without_residuals(num_classes, pretrained: bool = False, path= None
                 state_dict[k] = pretrained_state_dict[k].data
         model.load_state_dict(state_dict)
     return model
-
-if __name__=='__main__':
-    x = torch.randn(8, 3, 80, 80)
-    model = resnet18_without_residuals(2,pretrained=True)
-    # model = resnet18(2)
-    a = model.state_dict()
-    o=model(x)
